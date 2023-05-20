@@ -218,7 +218,7 @@ export class WordleSession {
                 guess = this.setCharAt(guess, i, '1');
                 res[i] = {
                     type: "correct",
-                    character: guess.charAt(i)
+                    character: payload.charAt(i)
                 };
             }
         }
@@ -230,12 +230,12 @@ export class WordleSession {
                 target = this.setCharAt(target, target.indexOf(guess.charAt(i)), '0');
                 res[i] = {
                     type: "misplaced",
-                    character: guess.charAt(i)
+                    character: payload.charAt(i)
                 };
             } else if (!res[i]) {
                 res[i] = {
                     type: "wrong",
-                    character: guess.charAt(i)
+                    character: payload.charAt(i)
                 };
             }
         }
