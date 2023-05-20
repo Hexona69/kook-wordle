@@ -28,7 +28,7 @@ export class Wordle {
     constructor() {
         const files = fs.readdirSync(upath.join(__dirname, 'words'))
         for (const file of files) {
-            if (file.endsWith(".json")) {
+            if (file.endsWith(".json") && file.includes("CET")) {
                 const dictionaryRaw = fs.readFileSync(upath.join(__dirname, 'words', file), { encoding: 'utf-8' });
                 this.dictionary = {
                     ...this.dictionary,
