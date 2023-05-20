@@ -1,0 +1,6 @@
+[submodule "src/menu/wordle/lib/english-words"]
+	path = src/menu/wordle/lib/english-words
+	url = https://github.com/dwyl/english-words
+[submodule "src/menu/wordle/lib/google-10000-english"]
+	path = src/menu/wordle/lib/google-10000-english
+	url = https://github.com/first20hours/google-10000-english

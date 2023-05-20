@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import './event';
 
 class AppMenu extends BaseMenu {
-    name = 'echo';
+    name = 'wordle';
     prefix = './!';
 }
 
