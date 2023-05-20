@@ -78,7 +78,7 @@ export class Wordle {
     }
 
     public finishGame(channelId: string) {
-        this.channelSession[channelId].job?.cancel();
+        this.channelSession[channelId]?.job?.cancel();
         delete this.channelSession[channelId];
     }
 }
