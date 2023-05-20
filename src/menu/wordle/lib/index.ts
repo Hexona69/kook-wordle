@@ -129,7 +129,7 @@ export class WordleSession {
 
     private scheduleFinish() {
         this.job?.cancel();
-        this.job = schedule.scheduleJob(new Date(Date.now() + 30 * 1000), () => {
+        this.job = schedule.scheduleJob(new Date(Date.now() + 5 * 60 * 1000), () => {
             client.API.message.create(
                 MessageType.CardMessage,
                 this.channelId,
