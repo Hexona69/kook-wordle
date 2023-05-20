@@ -24,8 +24,9 @@ client.on('message.text', async (event) => {
                         card.addTitle("你赢了！");
                     } else {
                         card.addTitle("没有人猜出结果")
-                            .addText(`答案是：${wSession.target}`);
                     }
+                    card.addText(`答案是：${wSession.target}`)
+                        .addContext(`${wordle.dictionary[wSession.target].中释}`)
                     wordle.finishGame(session.channelId);
                 }
                 const { err, data } = await client.API.asset.create(wSession.draw());

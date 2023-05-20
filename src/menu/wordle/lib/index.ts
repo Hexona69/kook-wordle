@@ -18,11 +18,16 @@ interface GuessResult {
 }
 
 export class Wordle {
-    dictionary: string[];
+    dictionary: {
+        [word: string]: {
+            中释: string,
+            英释: string
+        },
+    }
 
     constructor() {
-        const dictionaryRaw = fs.readFileSync(upath.join(__dirname, 'google-10000-english', '20k.txt'), { encoding: 'utf-8' });
-        this.dictionary = dictionaryRaw.split('\n');
+        const dictionaryRaw = fs.readFileSync(upath.join(__dirname, 'words', 'TOFEL.json'), { encoding: 'utf-8' });
+        this.dictionary = JSON.parse(dictionaryRaw);
     }
 
     channelSession: {
@@ -39,7 +44,7 @@ export class Wordle {
     }
 
     public checkWord(word: string) {
-        return this.dictionary.includes(word);
+        return Object.keys(this.dictionary).includes(word);
     }
 
     public guess(channelId: string, guess: string) {
@@ -50,7 +55,7 @@ export class Wordle {
     }
 
     public getRandomWord(length: number) {
-        const filtered = this.dictionary.filter(v => v.length == length);
+        const filtered = Object.keys(this.dictionary).filter(v => v.length == length);
         return filtered[crypto.randomInt(filtered.length)];
     }
 
@@ -119,8 +124,10 @@ export class WordleSession {
             client.API.message.create(
                 MessageType.CardMessage,
                 this.channelId,
-                new Card().addTitle("超时没有人猜出结果")
+                new Card()
+                    .addTitle("超时没有人猜出结果")
                     .addText(`答案是：${this.target}`)
+                    .addContext(`${wordle.dictionary[this.target].中释}`)
             )
             wordle.finishGame(this.channelId);
         })
