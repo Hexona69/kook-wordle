@@ -186,10 +186,10 @@ export class WordleSession {
         return this.historyPlain.includes(guess);
     }
 
-    public guess(guess: string): GuessResult {
+    public guess(payload: string): GuessResult {
         this.scheduleFinish();
-        this.historyPlain.push(guess);
-        let target = this.target;
+        this.historyPlain.push(payload);
+        let target = this.target, guess = payload;
         let res: ResultItem[] = new Array(target.length);
         if (guess == this.target) {
             res = guess.split("").map(v => {
@@ -208,6 +208,7 @@ export class WordleSession {
         for (let i = 0; i < this.target.length; ++i) {
             if (target.charAt(i) == guess.charAt(i)) {
                 target = this.setCharAt(target, i, '0');
+                guess = this.setCharAt(guess, i, '1');
                 res[i] = {
                     type: "correct",
                     character: guess.charAt(i)
