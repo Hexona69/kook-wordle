@@ -6,7 +6,7 @@ client.on('message.text', async (event) => {
     const wSession = wordle.getSession(event.channelId)
     if (wSession) {
         const session = new BaseSession([], event, client);
-        const guess = event.content.split(" ")[0].trim();
+        const guess = event.content.split(" ")[0].trim().toLowerCase();
         if (guess.length == wSession.target.length && /^[a-zA-Z]+$/.test(guess)) {
             const card = new Card().setSize('sm');
             const { err, data } = await session.send(card);

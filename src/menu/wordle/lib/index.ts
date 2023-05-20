@@ -23,11 +23,19 @@ export class Wordle {
             中释: string,
             英释: string
         },
-    }
+    } = {};
 
     constructor() {
-        const dictionaryRaw = fs.readFileSync(upath.join(__dirname, 'words', 'TOFEL.json'), { encoding: 'utf-8' });
-        this.dictionary = JSON.parse(dictionaryRaw);
+        const files = fs.readdirSync(upath.join(__dirname, 'words'))
+        for (const file of files) {
+            if (file.endsWith(".json")) {
+                const dictionaryRaw = fs.readFileSync(upath.join(__dirname, 'words', file), { encoding: 'utf-8' });
+                this.dictionary = {
+                    ...this.dictionary,
+                    ...JSON.parse(dictionaryRaw)
+                }
+            }
+        }
     }
 
     channelSession: {
@@ -70,6 +78,7 @@ export class Wordle {
     }
 
     public finishGame(channelId: string) {
+        this.channelSession[channelId].job?.cancel();
         delete this.channelSession[channelId];
     }
 }
