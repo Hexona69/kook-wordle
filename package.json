@@ -1,7 +1,7 @@
 {
-  "name": "kasumi-template",
+  "name": "kook-wordle",
   "version": "0.1.0",
-  "description": "Template for Kasumi",
+  "description": "Wordle game for KOOK",
   "main": "index.js",
   "scripts": {
     "start": "node --nolazy -r ts-node/register -r tsconfig-paths/register src/index.ts",
