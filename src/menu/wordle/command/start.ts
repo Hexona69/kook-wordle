@@ -13,7 +13,7 @@ class AppCommand extends BaseCommand {
         if (wordle.newGame(session.channelId, length)) {
             const wSession = wordle.getSession(session.channelId);
             if (wSession) {
-                const { err, data } = await this.client.API.asset.create(wSession.draw());
+                const { err, data } = await this.client.API.asset.create(await wSession.draw());
                 if (err) throw err;
                 const { url } = data;
                 const card = new Card()

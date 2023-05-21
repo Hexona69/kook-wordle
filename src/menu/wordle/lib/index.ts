@@ -1,14 +1,17 @@
 import * as fs from 'fs';
 import upath from 'upath';
 import crypto from 'crypto';
-import { createCanvas } from 'canvas';
+import { Image, ImageData, createCanvas } from 'canvas';
 import schedule from 'node-schedule';
 import { Card, MessageType } from 'kasumi.js';
 import { client } from 'init/client';
+import axios from 'axios';
+import sharp from 'sharp';
 
 interface ResultItem {
     type: "correct" | "misplaced" | "wrong";
     character: string;
+    author: Buffer;
 }
 
 interface GuessResult {
@@ -60,10 +63,10 @@ export class Wordle {
         return Object.keys(this.dictionary).includes(word);
     }
 
-    public guess(channelId: string, guess: string) {
+    public guess(channelId: string, guess: string, user: Buffer) {
         const session = this.getSession(channelId);
         if (session) {
-            return session.guess(guess);
+            return session.guess(guess, user);
         }
     }
 
@@ -106,10 +109,10 @@ export class WordleSession {
     private readonly _BEZEL_SIZE = 30;
 
     private get FONT_SIZE() {
-        return this.BLOCK_SIZE - 4 * this.SCALE;
+        return (this._BLOCK_SIZE - 8) * this.SCALE;
     }
     private get DRAW_WIDTH() {
-        return this.BEZEL_SIZE * 2 + this.BLOCK_SIZE * this.WIDTH + this.BLOCK_GAP * (this.WIDTH - 1);
+        return this.BEZEL_SIZE * 2 + this.BLOCK_SIZE * this.WIDTH + this.BLOCK_GAP * (this.WIDTH - 1) + this.AVATAR_SIZE;
     }
     private get DRAW_HEIGHT() {
         return this.BEZEL_SIZE * 2 + this.BLOCK_SIZE * this.HEIGHT + this.BLOCK_GAP * (this.HEIGHT - 1);
@@ -122,6 +125,7 @@ export class WordleSession {
     private get BLOCK_SIZE() { return this._BLOCK_SIZE * this.SCALE };
     private get BORDER_WIDTH() { return this._BORDER_WIDTH * this.SCALE };
     private get BEZEL_SIZE() { return this._BEZEL_SIZE * this.SCALE };
+    public get AVATAR_SIZE() { return this.BLOCK_SIZE - this.BORDER_WIDTH };
 
     constructor(target: string, channelId: string) {
         this.target = target;
@@ -147,19 +151,18 @@ export class WordleSession {
         })
     }
 
-    public draw(): Buffer {
+    public async draw(): Promise<Buffer> {
         const canvas = createCanvas(this.DRAW_WIDTH, this.DRAW_HEIGHT);
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, this.DRAW_WIDTH, this.DRAW_HEIGHT);
-        ctx.fillStyle = "gray";
         ctx.lineWidth = this.BORDER_WIDTH;
         for (let i = 1; i <= this.HEIGHT; ++i) {
             const column = this.history[i - 1];
             for (let j = 1; j <= this.WIDTH; ++j) {
-                ctx.fillStyle = 'black';
+                ctx.strokeStyle = 'rgb(123, 123, 124)';
                 ctx.strokeRect(
-                    this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE),
+                    this.AVATAR_SIZE + this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE),
                     this.BEZEL_SIZE + (i - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE),
                     this.BLOCK_SIZE,
                     this.BLOCK_SIZE
@@ -167,9 +170,15 @@ export class WordleSession {
                 if (column) {
                     const item = column[j - 1];
                     if (item) {
+                        const iData = new ImageData(Uint8ClampedArray.from(item.author), this.AVATAR_SIZE, this.AVATAR_SIZE);
+                        ctx.putImageData(
+                            iData,
+                            this.BEZEL_SIZE / 2,
+                            this.BEZEL_SIZE + (i - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BORDER_WIDTH / 2
+                        )
                         ctx.fillStyle = item.type == 'correct' ? 'rgb(134, 163, 115)' : item.type == 'misplaced' ? 'rgb(198, 182, 108)' : 'rgb(123, 123, 123)';
                         ctx.fillRect(
-                            this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BORDER_WIDTH / 2,
+                            this.AVATAR_SIZE + this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BORDER_WIDTH / 2,
                             this.BEZEL_SIZE + (i - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BORDER_WIDTH / 2,
                             this.BLOCK_SIZE - this.BORDER_WIDTH,
                             this.BLOCK_SIZE - this.BORDER_WIDTH
@@ -179,9 +188,9 @@ export class WordleSession {
                         ctx.font = `${this.FONT_SIZE}px monospace`;
                         ctx.fillStyle = 'white';
                         ctx.fillText(
-                            item.character,
-                            this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BLOCK_SIZE / 2,
-                            this.BEZEL_SIZE + (i - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BLOCK_SIZE / 2,
+                            item.character.toUpperCase(),
+                            this.AVATAR_SIZE + this.BEZEL_SIZE + (j - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BLOCK_SIZE / 2,
+                            this.BEZEL_SIZE + (i - 1) * (this.BLOCK_GAP + this.BLOCK_SIZE) + this.BLOCK_SIZE / 2 + 2 * this.SCALE,
                             this.BLOCK_SIZE
                         );
                     }
@@ -207,7 +216,7 @@ export class WordleSession {
         return this.historyPlain.includes(guess);
     }
 
-    public guess(payload: string): GuessResult {
+    public guess(payload: string, user: Buffer): GuessResult {
         this.scheduleFinish();
         this.historyPlain.push(payload);
         let target = this.target, guess = payload;
@@ -216,7 +225,8 @@ export class WordleSession {
             res = guess.split("").map(v => {
                 return {
                     type: "correct",
-                    character: v
+                    character: v,
+                    author: user
                 }
             });
             this.history.push(res);
@@ -232,7 +242,8 @@ export class WordleSession {
                 guess = this.setCharAt(guess, i, '1');
                 res[i] = {
                     type: "correct",
-                    character: payload.charAt(i)
+                    character: payload.charAt(i),
+                    author: user
                 };
             }
         }
@@ -244,12 +255,14 @@ export class WordleSession {
                 target = this.setCharAt(target, target.indexOf(guess.charAt(i)), '0');
                 res[i] = {
                     type: "misplaced",
-                    character: payload.charAt(i)
+                    character: payload.charAt(i),
+                    author: user
                 };
             } else if (!res[i]) {
                 res[i] = {
                     type: "wrong",
-                    character: payload.charAt(i)
+                    character: payload.charAt(i),
+                    author: user
                 };
             }
         }
