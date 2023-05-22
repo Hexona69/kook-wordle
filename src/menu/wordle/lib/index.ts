@@ -72,7 +72,7 @@ export class Wordle {
 
     public getRandomWord(length: number) {
         const filtered = Object.keys(this.words).filter(v => v.length == length);
-        return filtered[crypto.randomInt(filtered.length)];
+        return filtered[crypto.randomInt(filtered.length)].toLowerCase();
     }
 
     public newGame(channelId: string, length: number) {
