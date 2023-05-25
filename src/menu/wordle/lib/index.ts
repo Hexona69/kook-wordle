@@ -216,7 +216,10 @@ export class WordleSession {
         return this.historyPlain.includes(guess);
     }
 
-    public guess(payload: string, user: Buffer): GuessResult {
+    public guess(payload: string, user: Buffer): GuessResult | undefined {
+        if (this.hasGuessed(payload)) {
+            return;
+        }
         this.scheduleFinish();
         this.historyPlain.push(payload);
         let target = this.target, guess = payload;
